@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Falke HX-9 : vue éclatée 3D d'un drone tactique VTOL inventé, qui se remonte au défilement, avec son dossier de pré-dimensionnement.">
+<meta property="og:title" content="Falke HX-9">
+<meta property="og:description" content="Falke HX-9 : vue éclatée 3D d'un drone tactique VTOL inventé, qui se remonte au défilement, avec son dossier de pré-dimensionnement.">
+<title>Falke HX-9</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+/* Layout: short briefing header, then a tall scroll track with a sticky 3D hangar view and HUD overlays, then a spec sheet. Single dark "hangar at night" world. */
+:root {
+  --bg: #000000;
+  --bg-2: #000000;
+  --panel: #000000;
+  --fg: #ffffff;
+  --muted: #ffffff;
+  --line: #262626;
+  --accent: #ffffff;
+  --accent-soft: #ffffff1f;
+  --done: #ffffff;
+  --f-display: "Chakra Petch", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.55;
+}
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.inner { max-width: 1120px; margin: 0 auto; }
+
+/* Intro */
+.intro { padding-block: 56px 40px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); display: flex; gap: 10px; flex-wrap: wrap; }
+.eyebrow span + span::before { content: "/"; margin-right: 10px; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(48px, 9vw, 112px); line-height: .92; letter-spacing: -.01em; margin: 18px 0 18px; text-wrap: balance; text-transform: uppercase; }
+h1 .reg { color: var(--accent); }
+.lede { max-width: 58ch; color: var(--muted); font-size: 18px; margin: 0; }
+.lede strong { color: var(--fg); font-weight: 500; }
+.scroll-hint { margin-top: 28px; font-family: var(--f-mono); font-size: 13px; color: var(--fg); display: inline-flex; align-items: center; gap: 10px; }
+.scroll-hint i { display: inline-block; width: 1px; height: 26px; background: linear-gradient(var(--accent), transparent); }
+
+/* Scroll track */
+.track { position: relative; height: 780vh; }
+.stage { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; background: var(--bg); }
+#gl, #overlay { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#overlay { pointer-events: none; }
+
+.hud { position: absolute; pointer-events: none; font-family: var(--f-mono); }
+.parts {
+  top: 20px; left: max(20px, env(safe-area-inset-left, 0px)); width: 268px;
+  background: color-mix(in srgb, var(--panel) 82%, transparent); border: 1px solid var(--line); border-radius: 4px; padding: 14px 14px 10px;
+  backdrop-filter: blur(6px);
+}
+.hud-title { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; display: flex; justify-content: space-between; }
+.parts ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.parts li { display: grid; grid-template-columns: 22px 12px 1fr auto; gap: 8px; align-items: center; font-size: 12.5px; padding: 4px 6px; border-radius: 3px; color: var(--muted); transition: color .2s, background .2s; }
+.parts li .n { font-variant-numeric: tabular-nums; opacity: .7; }
+.parts li .s { width: 9px; height: 9px; border: 1px solid currentColor; border-radius: 1px; }
+.parts li .m { font-variant-numeric: tabular-nums; font-size: 11px; opacity: .8; }
+.parts li { opacity: .55; }
+.parts li.done, .parts li.active { opacity: 1; }
+.parts li.done { color: var(--done); }
+.parts li.done .s { background: currentColor; }
+.parts li.active { color: var(--accent); background: var(--accent-soft); font-weight: 500; }
+.parts li.active .s { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.readout { right: max(20px, env(safe-area-inset-right, 0px)); bottom: max(20px, env(safe-area-inset-bottom, 0px)); text-align: right; display: grid; gap: 4px; }
+.readout .big { font-family: var(--f-display); font-weight: 600; font-size: clamp(34px, 5vw, 56px); line-height: 1; font-variant-numeric: tabular-nums; }
+.readout .big small { font-size: .45em; color: var(--muted); margin-left: 4px; }
+.readout .row { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.readout .row b { color: var(--fg); font-weight: 500; }
+.bar { width: 220px; height: 3px; background: var(--line); justify-self: end; margin-top: 6px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+
+.callout { left: 0; top: 0; min-width: 200px; max-width: 250px; padding: 10px 12px; border: 1px solid var(--accent); background: color-mix(in srgb, var(--bg) 88%, transparent); border-radius: 3px; opacity: 0; transition: opacity .25s; }
+.callout.on { opacity: 1; }
+.callout .k { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+.callout .t { font-family: var(--f-display); font-size: 19px; font-weight: 600; color: var(--fg); line-height: 1.15; margin: 3px 0 4px; }
+.callout .d { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+
+.mobile-card { display: none; }
+.status { left: max(20px, env(safe-area-inset-left, 0px)); bottom: max(20px, env(safe-area-inset-bottom, 0px)); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.status b { color: var(--accent); font-weight: 500; }
+
+@media (max-width: 860px) {
+  .parts, .callout, .status { display: none; }
+  .mobile-card { display: block; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); padding: 12px 14px; border: 1px solid var(--line); border-radius: 4px; background: color-mix(in srgb, var(--panel) 88%, transparent); }
+  .mobile-card .k { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); display: flex; justify-content: space-between; }
+  .mobile-card .t { font-family: var(--f-display); font-weight: 600; font-size: 20px; margin: 2px 0; }
+  .mobile-card .d { font-size: 12px; color: var(--muted); }
+  .mobile-card .bar { width: 100%; }
+  .readout { top: max(16px, env(safe-area-inset-top, 0px)); bottom: auto; right: max(16px, env(safe-area-inset-right, 0px)); }
+  .readout .bar { display: none; }
+}
+
+/* Spec sheet */
+.spec { padding-block: 64px 72px; border-top: 1px solid var(--line); }
+.spec h2 { font-family: var(--f-display); font-weight: 600; font-size: clamp(28px, 4vw, 40px); margin: 0 0 6px; text-transform: uppercase; text-wrap: balance; }
+.spec p.sub { color: var(--muted); margin: 0 0 28px; max-width: 60ch; }
+.sheet { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.cell { padding: 16px 18px 18px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+.cell .k { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.cell .v { font-family: var(--f-display); font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 4px; }
+.cell .v small { font-size: 15px; color: var(--muted); margin-left: 3px; }
+.calc-title { font-family: var(--f-display); font-weight: 600; font-size: 22px; text-transform: uppercase; margin: 48px 0 16px; }
+.calcs { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+.calc { border: 1px solid var(--line); border-radius: 4px; padding: 16px 18px; min-width: 0; display: grid; gap: 8px; align-content: start; }
+.calc .k { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.calc code { font-family: var(--f-mono); font-size: 15px; color: var(--accent); overflow-x: auto; white-space: nowrap; }
+.calc p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.calc .r { font-size: 14px; color: var(--fg); font-weight: 500; }
+.dossier { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.block { border: 1px solid var(--line); border-radius: 4px; padding: 18px 20px; min-width: 0; display: grid; gap: 12px; align-content: start; }
+.block.wide { grid-column: 1 / -1; }
+.block > .k { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+.block code { font-family: var(--f-mono); font-size: 13.5px; line-height: 1.7; white-space: normal; overflow-wrap: anywhere; }
+.block p { margin: 0; font-size: 13px; line-height: 1.55; opacity: .72; max-width: 75ch; }
+.block p.story { opacity: 1; border-left: 2px solid var(--fg); padding-left: 10px; }
+.rows { margin: 0; display: grid; gap: 0; }
+.rows > div { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.rows dt { opacity: .72; } .rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.rows.four { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); column-gap: 24px; }
+.rows dt i { display: inline-block; width: 10px; height: 10px; margin-right: 8px; vertical-align: -1px; }
+.massbar { display: flex; height: 14px; gap: 2px; }
+.s1 { background: #ffffff; } .s2 { background: #a6a6a6; } .s3 { background: #636363; } .s4 { background: #383838; outline: 1px solid #636363; outline-offset: -1px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 400; opacity: .72; padding: 6px 12px 8px 0; border-bottom: 1px solid var(--line); }
+td { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td:first-child { white-space: normal; }
+tr.tot td { border-bottom: 0; font-weight: 500; }
+.note { margin-top: 22px; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.fallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-family: var(--f-mono); padding: 24px; text-align: center; }
+</style>
+</head>
+<body>
+
+
+<header class="intro wrap">
+  <div class="inner">
+    <div class="eyebrow"><span>Vue éclatée interactive</span><span>Conception allemande</span><span>Modèle fictif</span></div>
+    <h1>Falke <span class="reg">HX-9</span></h1>
+    <p class="lede">Un drone tactique de reconnaissance à décollage vertical : 19 kg, 2,9 m d'envergure, tout électrique, environ 1 h 20 d'autonomie. Il tient dans un véhicule et se déploie en quelques minutes. Démonté pièce par pièce. <strong>Fais défiler</strong> : chaque sous-ensemble revient à sa place, dans l'ordre réel de montage, du fuselage jusqu'au train d'atterrissage.</p>
+    <div class="scroll-hint"><i aria-hidden="true"></i>Défile pour assembler</div>
+  </div>
+</header>
+
+<section class="track" id="track" aria-label="Assemblage du drone au défilement">
+  <div class="stage" id="stage">
+    <canvas id="gl" aria-hidden="true"></canvas>
+    <canvas id="overlay" aria-hidden="true"></canvas>
+
+    <div class="hud parts" aria-hidden="true">
+      <p class="hud-title"><span>Ordre de montage</span><span>Masse</span></p>
+      <ol id="partList"></ol>
+    </div>
+
+    <div class="hud callout" id="callout" aria-hidden="true">
+      <div class="k" id="cK"></div>
+      <div class="t" id="cT"></div>
+      <div class="d" id="cD"></div>
+    </div>
+
+    <div class="hud status" id="status">Statut : <b id="statusTxt">Démonté</b></div>
+
+    <div class="hud readout">
+      <div class="big"><span id="pct">0</span><small>%</small></div>
+      <div class="row">Masse installée <b id="mass">0,00</b> / <span id="massTot"></span> kg</div>
+      <div class="bar"><i id="barFill"></i></div>
+    </div>
+
+    <div class="hud mobile-card" aria-live="polite">
+      <div class="k"><span id="mK"></span><span id="mM"></span></div>
+      <div class="t" id="mT"></div>
+      <div class="d" id="mD"></div>
+    </div>
+  </div>
+</section>
+
+<section class="spec wrap">
+  <div class="inner">
+    <h2>Fiche technique</h2>
+    <p class="sub">Les valeurs du Falke HX-9 assemblé. Chaque chiffre de performance est calculé à partir de la masse et des dimensions du modèle, avec les formules juste en dessous.</p>
+    <div class="sheet">
+      <div class="cell"><div class="k">Masse max. au décollage</div><div class="v">19<small>kg</small></div></div>
+      <div class="cell"><div class="k">Envergure / longueur</div><div class="v">2,9<small>m / 1,9 m</small></div></div>
+      <div class="cell"><div class="k">Vitesse de croisière</div><div class="v">89<small>km/h</small></div></div>
+      <div class="cell"><div class="k">Vitesse de décrochage</div><div class="v">64<small>km/h</small></div></div>
+      <div class="cell"><div class="k">Rayon d'action</div><div class="v">37<small>km, avec 20 % de réserve</small></div></div>
+      <div class="cell"><div class="k">Propulsion</div><div class="v">100 %<small>électrique</small></div></div>
+    </div>
+
+    <h3 class="calc-title">D'où viennent ces chiffres</h3>
+    <div class="calcs">
+      <div class="calc"><div class="k">Puissance en stationnaire</div><code>P = T<sup>3/2</sup> / (FM · √(2ρA))</code><p>T = 19 × 9,81 = 186 N · A = 4 rotors Ø 0,48 m = 0,72 m² · ρ = 1,225 kg/m³ · FM = 0,65</p><div class="r">≈ 2,9 kW nécessaires, 4,8 kW installés (marge × 1,6)</div></div>
+      <div class="calc"><div class="k">Vitesse de décrochage</div><code>V<sub>s</sub> = √(2W / (ρ · S · C<sub>L max</sub>))</code><p>S = 0,74 m² d'aile · C<sub>L max</sub> = 1,3 · charge alaire 251 N/m²</p><div class="r">17,7 m/s, soit 64 km/h</div></div>
+      <div class="calc"><div class="k">Puissance en croisière</div><code>P = (W / (L/D)) · V / η<sub>hélice</sub></code><p>Finesse L/D = 10 · V = 1,4 × V<sub>s</sub> = 24,8 m/s · η = 0,7</p><div class="r">≈ 0,66 kW à l'hélice, 0,79 kW électriques avec l'avionique</div></div>
+      <div class="calc"><div class="k">Autonomie</div><code>t = (E<sub>batt</sub> − E<sub>stationnaire</sub>) / P<sub>élec</sub></code><p>6 kg × 230 Wh/kg × 85 % = 1,17 kWh, moins 0,12 kWh pour 2,5 min de décollage et d'atterrissage</p><div class="r">1,05 / 0,79 ≈ 1 h 20 de vol</div></div>
+    </div>
+
+    <h3 class="calc-title">Dossier technique</h3>
+    <div class="dossier">
+
+      <article class="block wide">
+        <div class="k">01 · Bilan de masse</div>
+        <div class="massbar" role="img" aria-label="Répartition de la masse : énergie 36 %, structure 35 %, propulsion 17 %, avionique et capteurs 12 %">
+          <span style="flex:6.9" class="s1"></span><span style="flex:6.7" class="s2"></span><span style="flex:3.2" class="s3"></span><span style="flex:2.2" class="s4"></span>
+        </div>
+        <dl class="rows four">
+          <div><dt><i class="s1"></i>Énergie</dt><dd>6,90 kg · 36 %</dd></div>
+          <div><dt><i class="s2"></i>Structure</dt><dd>6,70 kg · 35 %</dd></div>
+          <div><dt><i class="s3"></i>Propulsion</dt><dd>3,20 kg · 17 %</dd></div>
+          <div><dt><i class="s4"></i>Avionique et capteurs</dt><dd>2,20 kg · 12 %</dd></div>
+        </dl>
+        <p>Structure : fuselage, capots, ailes, bras, empennage, train. Propulsion : 5 moteurs, hélices, régulateurs. La batterie seule pèse près d'un tiers du drone : c'est typique d'un appareil électrique.</p>
+      </article>
+
+      <article class="block">
+        <div class="k">02 · Centrage et stabilité</div>
+        <code>h<sub>n</sub> = h<sub>ac</sub> + η · V<sub>H</sub> · (a<sub>t</sub>/a<sub>w</sub>) · (1 − dε/dα)</code>
+        <dl class="rows">
+          <div><dt>Centre de gravité</dt><dd>0,89 m du nez</dd></div>
+          <div><dt>Point neutre</dt><dd>0,92 m du nez</dd></div>
+          <div><dt>Volume d'empennage V<sub>H</sub></dt><dd>0,31</dd></div>
+          <div><dt>Marge statique</dt><dd><b>+10 % de la corde</b></dd></div>
+        </dl>
+        <p class="story">Premier calcul : batterie au milieu, marge de −3 %. Le drone aurait été instable en tangage. Batterie avancée de 11 cm : marge de +10 %, dans la fourchette normale (5 à 15 %).</p>
+      </article>
+
+      <article class="block">
+        <div class="k">03 · Aérodynamique</div>
+        <code>(L/D)<sub>max</sub> = ½ · √(π · e · A / C<sub>D0</sub>)</code>
+        <dl class="rows">
+          <div><dt>Allongement A = b²/S</dt><dd>11,2</dd></div>
+          <div><dt>Corde moyenne</dt><dd>27,5 cm</dd></div>
+          <div><dt>Reynolds en croisière</dt><dd>4,6 × 10⁵</dd></div>
+          <div><dt>C<sub>L</sub> en croisière</dt><dd>0,67</dd></div>
+          <div><dt>Finesse max (C<sub>D0</sub> 0,045 · e 0,8)</dt><dd>12,5</dd></div>
+          <div><dt>Finesse à 89 km/h</dt><dd><b>11,0</b></dd></div>
+        </dl>
+        <p>La traînée des 4 rotors arrêtés et des bras est incluse dans C<sub>D0</sub>. La finesse de 10 utilisée plus haut est donc une hypothèse prudente.</p>
+      </article>
+
+      <article class="block">
+        <div class="k">04 · Rotors de sustentation</div>
+        <code>v<sub>i</sub> = √(T / (2ρA)) · T<sub>max</sub> = (P · FM · √(2ρA))<sup>2/3</sup></code>
+        <dl class="rows">
+          <div><dt>Poussée par rotor</dt><dd>46,6 N</dd></div>
+          <div><dt>Charge du disque</dt><dd>258 N/m²</dd></div>
+          <div><dt>Vitesse induite</dt><dd>10,3 m/s</dd></div>
+          <div><dt>Poussée max (4,8 kW)</dt><dd>258 N</dd></div>
+          <div><dt>Rapport poussée / poids</dt><dd><b>1,39</b></dd></div>
+          <div><dt>Régime (bout de pale 140 m/s)</dt><dd>≈ 5 600 tr/min · Mach 0,41</dd></div>
+        </dl>
+      </article>
+
+      <article class="block">
+        <div class="k">05 · Batterie</div>
+        <code>I = P / (U · η) · C = I / Q</code>
+        <dl class="rows">
+          <div><dt>Tension nominale (12S)</dt><dd>43,2 V</dd></div>
+          <div><dt>Capacité</dt><dd>32 Ah</dd></div>
+          <div><dt>Courant en stationnaire</dt><dd>74 A · 2,3 C</dd></div>
+          <div><dt>Courant en croisière</dt><dd>18 A · 0,6 C</dd></div>
+        </dl>
+        <p>2,3 C reste dans ce que supportent des cellules Li-ion haute puissance pendant les 2 à 3 minutes de vol vertical.</p>
+      </article>
+
+      <article class="block">
+        <div class="k">06 · Structure de l'aile</div>
+        <code>M = n · (W/2) · 4b / (6π) · A<sub>semelle</sub> = M / (h · σ<sub>adm</sub>)</code>
+        <dl class="rows">
+          <div><dt>Facteur de charge limite</dt><dd>3,8 g</dd></div>
+          <div><dt>Moment à l'emplanture</dt><dd>216 N·m</dd></div>
+          <div><dt>Hauteur du longeron</dt><dd>3,8 cm</dd></div>
+          <div><dt>Effort dans chaque semelle</dt><dd>5,7 kN</dd></div>
+          <div><dt>Section carbone (600 MPa ÷ 1,5)</dt><dd><b>14 mm²</b></dd></div>
+        </dl>
+        <p>Une semelle de 15 × 1 mm en carbone unidirectionnel suffit. Portance supposée elliptique.</p>
+      </article>
+
+
+      <article class="block">
+        <div class="k">07 · Virages</div>
+        <code>R = V² / (g · tan φ) · n = 1 / cos φ · V<sub>s,φ</sub> = V<sub>s</sub> · √n</code>
+        <dl class="rows">
+          <div><dt>Inclinaison 30°</dt><dd>R 109 m · 1,15 g · décroche à 19,0 m/s</dd></div>
+          <div><dt>Inclinaison 45°</dt><dd>R 63 m · 1,41 g · décroche à 21,0 m/s</dd></div>
+        </dl>
+        <p>À 24,8 m/s de croisière, il garde au moins 3,8 m/s de marge même à 45°.</p>
+      </article>
+
+      <article class="block wide">
+        <div class="k">08 · Profil de mission</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Phase</th><th>Puissance</th><th>Durée</th><th>Énergie</th></tr></thead>
+          <tbody>
+            <tr><td>Décollage et atterrissage verticaux</td><td>2,9 kW</td><td>2,5 min</td><td>122 Wh</td></tr>
+            <tr><td>Montée à 1 000 m (3 m/s)</td><td>1,7 kW</td><td>5,5 min</td><td>157 Wh</td></tr>
+            <tr><td>Croisière à 89 km/h</td><td>0,79 kW</td><td><b>50 min</b></td><td>659 Wh</td></tr>
+            <tr><td>Réserve de sécurité (20 %)</td><td>—</td><td>—</td><td>235 Wh</td></tr>
+            <tr class="tot"><td>Total utilisable</td><td></td><td></td><td>1 173 Wh</td></tr>
+          </tbody>
+        </table></div>
+        <p>50 min de croisière à 89 km/h, soit 75 km parcourus : <b>un rayon d'action de 37 km</b> avec retour à la base. Sans montée ni réserve, la batterie donnerait 1 h 20 de vol au maximum.</p>
+      </article>
+
+    </div>
+    <p class="note">Pré-dimensionnement d'avant-projet : la finesse, les rendements, le C<sub>D0</sub>, le C<sub>L max</sub> et les propriétés du carbone sont des hypothèses typiques de cette catégorie, pas des mesures. Modèle entièrement inventé, ne reproduisant aucun appareil existant. Rendu 3D en temps réel avec Three.js. Matériaux scannés : ambientCG (CC0). Éclairage HDRI : « Empty Warehouse 01 », Poly Haven (CC0).</p>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/SSAOShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/math/SimplexNoise.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/SSAOPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+(function () {
+  const STAGES = [
+    {"name": "Fuselage", "de": "Rumpf", "mat": "Coque composite carbone", "mass": 2.2, "note": "Baie ouverte sur le dessus pour monter les équipements."},
+    {"name": "Distribution de puissance", "de": "Leistungsverteilung", "mat": "4 régulateurs + carte de distribution 50 V", "mass": 0.6, "note": "Dissipateur à ailettes refroidi par la prise d'air du capot."},
+    {"name": "Batterie principale", "de": "Hauptakku", "mat": "Li-ion 12S, 1,4 kWh", "mass": 6.0, "note": "Un tiers de la masse : avancée de 11 cm pour rendre le drone stable (voir le centrage)."},
+    {"name": "Batterie de secours", "de": "Notstromakku", "mat": "Pack séparé pour l'avionique", "mass": 0.9, "note": "Garde le drone pilotable si la batterie principale lâche."},
+    {"name": "Baie avionique", "de": "Avionikbucht", "mat": "Calculateur de vol, centrale inertielle, modem", "mass": 0.8, "note": "Dans le nez, loin des moteurs et des perturbations électriques."},
+    {"name": "Capots", "de": "Abdeckungen", "mat": "Trois panneaux composite à verrous rapides", "mass": 0.35, "note": "Ouïes de refroidissement sur le capot arrière."},
+    {"name": "Ailes", "de": "Tragflächen", "mat": "Longeron carbone, envergure 2,9 m", "mass": 2.3, "note": "Démontables pour le transport, ailerons au bord de fuite."},
+    {"name": "Bras VTOL", "de": "VTOL-Ausleger", "mat": "Tubes carbone Ø 30 mm", "mass": 0.9, "note": "Bandes d'avertissement au niveau des rotors."},
+    {"name": "Moteurs de sustentation", "de": "Hubmotoren", "mat": "4 × brushless 1,2 kW", "mass": 1.6, "note": "4,8 kW installés pour 2,9 kW nécessaires en stationnaire."},
+    {"name": "Hélices de sustentation", "de": "Hubrotoren", "mat": "4 × bipales 19″ (Ø 48 cm)", "mass": 0.3, "note": "Arrêtées et alignées en vol de croisière."},
+    {"name": "Empennage en V", "de": "V-Leitwerk", "mat": "Gouvernes servo-commandées", "mass": 0.5, "note": "Combine profondeur et direction."},
+    {"name": "Hélice propulsive", "de": "Druckpropeller", "mat": "Moteur brushless 1 kW + bipale", "mass": 0.7, "note": "Pousse le drone en vol horizontal, quasi silencieux à 1 km."},
+    {"name": "Boule optronique", "de": "Sensorturm", "mat": "Tourelle 2 axes : jour + thermique", "mass": 1.2, "note": "Stabilisée, sous le nez pour une vue dégagée vers l'avant."},
+    {"name": "Antennes", "de": "Antennen", "mat": "GNSS, liaison de données chiffrée", "mass": 0.2, "note": "Fouet arrière, lames ventrales, récepteur dorsal."},
+    {"name": "Train d'atterrissage", "de": "Landekufen", "mat": "Patins carbone", "mass": 0.45, "note": "Protège la boule optronique au poser."}
+  ];
+  const TOTAL = STAGES.reduce((s, x) => s + x.mass, 0);
+  const fmt = (n, d = 2) => n.toFixed(d).replace(".", ",");
+  const $ = (id) => document.getElementById(id);
+  $("massTot").textContent = fmt(TOTAL);
+
+  const list = $("partList");
+  STAGES.forEach((s, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="n">${String(i + 1).padStart(2, "0")}</span><span class="s"></span><span>${s.name}</span><span class="m">${fmt(s.mass)}</span>`;
+    list.appendChild(li);
+  });
+  const lis = [...list.children];
+
+  const stageEl = $("stage"), track = $("track");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (!window.THREE) { stageEl.insertAdjacentHTML("beforeend", '<div class="fallback">Le moteur 3D n\'a pas pu se charger.</div>'); return; }
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas: $("gl"), antialias: true, alpha: true }); }
+  catch (e) { stageEl.insertAdjacentHTML("beforeend", '<div class="fallback">WebGL n\'est pas disponible sur cet appareil.</div>'); return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.85;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x000000, 14, 30);
+  scene.background = new THREE.Color(0x000000);
+  const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+
+  // Studio reflections: a small "softbox" room baked into an environment map
+  (function buildEnv() {
+    const env = new THREE.Scene();
+    env.add(new THREE.Mesh(new THREE.SphereGeometry(20, 32, 16), new THREE.MeshBasicMaterial({ color: 0x1a2229, side: THREE.BackSide })));
+    const box = (w, h, c, pos, rotY) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide })); m.position.set(...pos); m.lookAt(0, 0, 0); env.add(m); };
+    for (let i = -3; i <= 3; i++) box(16, 0.5, 0xb9c2c8, [i * 2.4, 11, 0]); // hangar ceiling strips
+    box(30, 30, 0x111315, [0, -14, 0]);  // floor bounce
+    box(5, 8, 0x7f8c95, [12, 3, 6]);       // key side
+    box(4, 6, 0x9aa3a9, [-11, 2, -7]);     // rim
+    box(10, 1.2, 0x8fb3c9, [0, -2, 12]);   // low cool fill
+    const pm = new THREE.PMREMGenerator(renderer);
+    scene.environment = pm.fromScene(env, 0.04).texture;
+  })();
+
+  scene.add(new THREE.HemisphereLight(0xcfd8e0, 0x1a2026, 0.35));
+  const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(4, 9, 5);
+  key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 25 });
+  key.shadow.bias = -0.0004; key.shadow.radius = 3;
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0xdfe6ea, 0.6); rim.position.set(-6, 3, -5); scene.add(rim);
+
+  // Hangar floor: sealed concrete with a painted VTOL pad
+  const floorTex = (function () {
+    const n = 1024, c = document.createElement("canvas"); c.width = c.height = n; const x = c.getContext("2d");
+    x.clearRect(0, 0, n, n);
+    for (let i = 0; i < 0; i++) { const v = 30 + Math.random() * 30 | 0; x.fillStyle = `rgba(${v},${v + 3},${v + 5},${Math.random() * 0.35})`; const r = Math.random() * 3; x.fillRect(Math.random() * n, Math.random() * n, r, r); }
+    for (let i = 0; i < 0; i++) { const g = x.createRadialGradient(0, 0, 0, 0, 0, 1); x.save(); x.translate(Math.random() * n, Math.random() * n); x.scale(60 + Math.random() * 140, 40 + Math.random() * 90);
+      g.addColorStop(0, "rgba(10,12,13,0.22)"); g.addColorStop(1, "rgba(10,12,13,0)"); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 1, 0, 7); x.fill(); x.restore(); }
+    for (let k = 1; k < 1; k++) { x.beginPath(); x.moveTo(k * n / 4, 0); x.lineTo(k * n / 4, n); x.moveTo(0, k * n / 4); x.lineTo(n, k * n / 4); x.stroke(); }
+    const cx = n / 2, cy = n / 2; x.strokeStyle = "rgba(196,150,50,0.6)"; x.lineWidth = 10; x.beginPath(); x.arc(cx, cy, 300, 0, Math.PI * 2); x.stroke();
+    x.lineWidth = 3; x.setLineDash([24, 18]); x.beginPath(); x.arc(cx, cy, 330, 0, Math.PI * 2); x.stroke(); x.setLineDash([]);
+    x.fillStyle = "rgba(196,150,50,0.55)"; x.font = "700 64px 'Chakra Petch', Arial"; x.textAlign = "center"; x.fillText("VTOL 01", cx, cy + 380);
+    x.fillStyle = "rgba(220,224,222,0.35)"; [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sy]) => { x.fillRect(cx + sx * 210 - 30, cy + sy * 210 - 4, 60, 8); x.fillRect(cx + sx * 210 - 4, cy + sy * 210 - 30, 8, 60); });
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return t;
+  })();
+  const concrete = (function () {
+    const n = 512, c = document.createElement("canvas"); c.width = c.height = n; const x = c.getContext("2d");
+    x.fillStyle = "#2a2f32"; x.fillRect(0, 0, n, n);
+    for (let i = 0; i < 6000; i++) { const v = 34 + Math.random() * 26 | 0; x.fillStyle = `rgba(${v},${v + 3},${v + 5},${Math.random() * 0.3})`; const r = Math.random() * 2.5; x.fillRect(Math.random() * n, Math.random() * n, r, r); }
+    for (let i = 0; i < 18; i++) { x.save(); x.translate(Math.random() * n, Math.random() * n); x.scale(40 + Math.random() * 90, 30 + Math.random() * 60);
+      const g = x.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, "rgba(8,10,11,0.25)"); g.addColorStop(1, "rgba(8,10,11,0)"); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 1, 0, 7); x.fill(); x.restore(); }
+    x.fillStyle = "rgba(0,0,0,0.45)"; x.fillRect(0, 0, n, 2); x.fillRect(0, 0, 2, n);
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(20, 20); t.anisotropy = 8; return t;
+  })();
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ map: concrete, color: 0x9aa0a3, roughness: 0.7, metalness: 0, envMapIntensity: 0.25 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -0.646; ground.receiveShadow = true;
+  const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMaterial({ opacity: 0.6 }));
+  shadowCatcher.rotation.x = -Math.PI / 2; shadowCatcher.position.y = -0.645; shadowCatcher.receiveShadow = true; scene.add(shadowCatcher);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), new THREE.MeshStandardMaterial({ map: floorTex, transparent: true, roughness: 0.6, metalness: 0, envMapIntensity: 0.25, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }));
+  floor.rotation.x = -Math.PI / 2; floor.rotation.z = Math.PI / 2; floor.position.y = -0.645; floor.receiveShadow = true;
+  const grid = { position: {} };
+
+  const phys = (o) => new THREE.MeshPhysicalMaterial(o);
+  const M = {
+    hull: phys({ color: 0x4d555b, roughness: 0.62, metalness: 0.25, clearcoat: 0.15, clearcoatRoughness: 0.6, side: THREE.DoubleSide }),
+    inner: new THREE.MeshStandardMaterial({ color: 0x23292d, roughness: 0.8, metalness: 0.3 }),
+    tank: phys({ color: 0x6b6f5a, roughness: 0.55, metalness: 0.2, clearcoat: 0.3 }),
+    pcb: new THREE.MeshStandardMaterial({ color: 0x1f4a35, roughness: 0.6, metalness: 0.2 }),
+    cable: new THREE.MeshStandardMaterial({ color: 0x8c2f2f, roughness: 0.7 }),
+    panel: phys({ color: 0x41494f, roughness: 0.66, metalness: 0.25, clearcoat: 0.1, side: THREE.DoubleSide }),
+    seam: new THREE.MeshStandardMaterial({ color: 0x1b2126, roughness: 0.8, metalness: 0.2 }),
+    dark: new THREE.MeshStandardMaterial({ color: 0x2a3036, roughness: 0.45, metalness: 0.6 }),
+    carbon: phys({ color: 0x15191c, roughness: 0.35, metalness: 0.2, clearcoat: 0.8, clearcoatRoughness: 0.15 }),
+    batt: new THREE.MeshStandardMaterial({ color: 0x34433a, roughness: 0.55, metalness: 0.15 }),
+    glass: phys({ color: 0x050b10, roughness: 0.05, metalness: 0.9, clearcoat: 1, emissive: 0x0e2733, emissiveIntensity: 0.8 }),
+    accent: new THREE.MeshStandardMaterial({ color: 0xd9dcde, roughness: 0.6, metalness: 0.1 }),
+    alu: new THREE.MeshStandardMaterial({ color: 0x9aa4aa, roughness: 0.28, metalness: 0.85 }),
+    rubber: new THREE.MeshStandardMaterial({ color: 0x111416, roughness: 0.9, metalness: 0 }),
+    navR: new THREE.MeshStandardMaterial({ color: 0x400808, emissive: 0xff2b2b, emissiveIntensity: 2.2 }),
+    navG: new THREE.MeshStandardMaterial({ color: 0x063010, emissive: 0x2bff6a, emissiveIntensity: 2.2 })
+  };
+
+  // ── Procedural surface textures (no image files): paint, carbon weave, brushed metal ──
+  const TEX = (function () {
+    let s = 1337; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    function noiseField(n, cells) { // tileable value noise
+      const g = Array.from({ length: cells * cells }, R), out = new Float32Array(n * n);
+      const sm = t => t * t * (3 - 2 * t);
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+        const fx = x / n * cells, fy = y / n * cells, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = sm(fx - x0), ty = sm(fy - y0);
+        const v = (i, j) => g[((j % cells + cells) % cells) * cells + ((i % cells + cells) % cells)];
+        const a = v(x0, y0) + (v(x0 + 1, y0) - v(x0, y0)) * tx, b = v(x0, y0 + 1) + (v(x0 + 1, y0 + 1) - v(x0, y0 + 1)) * tx;
+        out[y * n + x] = a + (b - a) * ty;
+      }
+      return out;
+    }
+    function fbm(n, base, oct) { const out = new Float32Array(n * n); let amp = 0.5, tot = 0;
+      for (let o = 0; o < oct; o++) { const f = noiseField(n, base << o); for (let i = 0; i < out.length; i++) out[i] += f[i] * amp; tot += amp; amp *= 0.5; }
+      for (let i = 0; i < out.length; i++) out[i] /= tot; return out; }
+    function canvasFrom(n, fn) { const c = document.createElement("canvas"); c.width = c.height = n; const x = c.getContext("2d"), im = x.createImageData(n, n);
+      for (let i = 0; i < n * n; i++) { const [r, g, b] = fn(i, i % n, (i / n) | 0); im.data[i * 4] = r; im.data[i * 4 + 1] = g; im.data[i * 4 + 2] = b; im.data[i * 4 + 3] = 255; }
+      x.putImageData(im, 0, 0); return c; }
+    function normalFrom(n, h, strength) { return canvasFrom(n, (i, x, y) => {
+      const H = (xx, yy) => h[((yy + n) % n) * n + ((xx + n) % n)];
+      const dx = (H(x + 1, y) - H(x - 1, y)) * strength, dy = (H(x, y + 1) - H(x, y - 1)) * strength;
+      const l = Math.hypot(dx, dy, 1); return [(-dx / l * 0.5 + 0.5) * 255, (-dy / l * 0.5 + 0.5) * 255, (1 / l * 0.5 + 0.5) * 255]; }); }
+    function tex(c, rep, srgb) { const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); t.anisotropy = 8; if (srgb) t.encoding = THREE.sRGBEncoding; return t; }
+
+    const N = 512;
+    // Painted skin: mottled matte paint, grime, panel seams and rivet rows baked into height
+    const mott = fbm(N, 4, 5), grime = fbm(N, 2, 4), fine = noiseField(N, 128);
+    const ph = new Float32Array(N * N);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const i = y * N + x; let v = fine[i] * 0.15;
+      const sx = x % 128, sy = y % 256;
+      if (sx < 2 || sy < 2) v -= 1.2;                                 // panel seams
+      if ((sx === 8 || sx === 120) && sy % 16 < 3 && sy > 6) v += 0.9;   // rivet rows
+      if (sx > 6 && sx < 10 && sy % 16 >= 1 && sy % 16 < 4) v += 0.6;
+      ph[i] = v;
+    }
+    const paint = {
+      map: tex(canvasFrom(N, i => { const m = 0.9 + mott[i] * 0.2 - Math.max(0, grime[i] - 0.55) * 0.5 - (ph[i] < -1 ? 0.25 : 0); return [255 * m, 255 * m, 255 * m]; }), [2, 1], true),
+      rough: tex(canvasFrom(N, i => { const r = 0.62 + mott[i] * 0.25 - Math.max(0, grime[i] - 0.6) * 0.3; const v = Math.min(1, r) * 255; return [v, v, v]; }), [2, 1]),
+      normal: tex(normalFrom(N, ph, 1.1), [2, 1])
+    };
+    // Twill carbon weave
+    const C = 256, cw = new Float32Array(C * C), cfib = noiseField(C, 64);
+    const cmap = canvasFrom(C, (i, x, y) => {
+      const tile = 32, u = x % tile, v = y % tile, row = ((x / tile | 0) + (y / tile | 0)) % 2;
+      const across = row ? Math.sin(u / tile * Math.PI) : Math.sin(v / tile * Math.PI);
+      const shade = 0.55 + across * 0.45 + (cfib[i] - 0.5) * 0.15; cw[i] = across;
+      const c = 18 + shade * 30; return [c, c + 2, c + 4];
+    });
+    const carbon = { map: tex(cmap, [6, 6], true), normal: tex(normalFrom(C, cw, 2.2), [6, 6]) };
+    // Brushed metal: long streaks in roughness
+    const streak = noiseField(N, 256);
+    const brushed = { rough: tex(canvasFrom(N, (i, x, y) => { const v = (0.22 + streak[(y % 8) * N + x] * 0.25) * 255; return [v, v, v]; }), [1, 1]) };
+    // Rubber / non-slip
+    const rn = noiseField(256, 64);
+    const rubber = { rough: tex(canvasFrom(256, i => { const v = (0.75 + rn[i] * 0.25) * 255; return [v, v, v]; }), [3, 3]) };
+    return { paint, carbon, brushed, rubber };
+  })();
+
+  // Matte military paint (dark grey, slightly blue) with the baked detail
+  Object.assign(M.hull, { envMapIntensity: 0.45, color: new THREE.Color(0x2c3338), map: TEX.paint.map, roughnessMap: TEX.paint.rough, roughness: 1, normalMap: TEX.paint.normal, normalScale: new THREE.Vector2(0.6, 0.6), metalness: 0.15, clearcoat: 0.05, clearcoatRoughness: 0.8 });
+  Object.assign(M.panel, { envMapIntensity: 0.45, color: new THREE.Color(0x252b2f), map: TEX.paint.map, roughnessMap: TEX.paint.rough, roughness: 1, normalMap: TEX.paint.normal, normalScale: new THREE.Vector2(0.6, 0.6), metalness: 0.15, clearcoat: 0.0 });
+  Object.assign(M.carbon, { color: new THREE.Color(0xffffff), map: TEX.carbon.map, normalMap: TEX.carbon.normal, normalScale: new THREE.Vector2(0.5, 0.5), roughness: 0.38, clearcoat: 1, clearcoatRoughness: 0.08, metalness: 0.1 });
+  Object.assign(M.alu, { roughnessMap: TEX.brushed.rough, roughness: 1, metalness: 0.92, color: new THREE.Color(0xa7aeb2) });
+  Object.assign(M.rubber, { roughnessMap: TEX.rubber.rough, roughness: 1 });
+  Object.assign(M.tank, { map: TEX.paint.map, roughnessMap: TEX.paint.rough, roughness: 1, color: new THREE.Color(0x5b604a), clearcoat: 0.1 });
+  Object.assign(M.accent, { color: new THREE.Color(0xcfd3d6), roughness: 0.7, metalness: 0.1 });
+  Object.values(M).forEach(m => m.needsUpdate = true);
+
+  // Real scanned materials (ambientCG, CC0) and real HDR lighting (Poly Haven, CC0), published next to the page.
+  // If they fail to load, the procedural materials above stay in place.
+  (function loadReal() {
+    const tl = new THREE.TextureLoader();
+    const load = u => new Promise((res, rej) => tl.load(u, res, undefined, rej));
+    const canvas = n => { const c = document.createElement("canvas"); c.width = c.height = n; return [c, c.getContext("2d")]; };
+    const tiled = (img, n, k) => { const [c, x] = canvas(n); for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) x.drawImage(img, i * n / k, j * n / k, n / k, n / k); return [c, x]; };
+    const asTex = (c, like) => { const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.copy(like.repeat); t.anisotropy = 8; return t; };
+    Promise.all(["tex/paint_normal.jpg", "tex/paint_rough.jpg", "tex/metal_normal.jpg", "tex/metal_rough.jpg", "tex/metal_color.jpg"].map(load)).then(([pn, pr, mn, mr, mc]) => {
+      const n = 1024;
+      // Whiteout blend: scanned powder-coat grain + the baked panel seams and rivet rows
+      const [c, x] = tiled(pn.image, n, 2); const A = x.getImageData(0, 0, n, n), a = A.data;
+      const [, x2] = canvas(n); x2.drawImage(TEX.paint.normal.image, 0, 0, n, n); const B = x2.getImageData(0, 0, n, n).data;
+      for (let k = 0; k < a.length; k += 4) {
+        const ax = a[k] / 127.5 - 1, ay = a[k + 1] / 127.5 - 1, az = a[k + 2] / 127.5 - 1, bx = B[k] / 127.5 - 1, by = B[k + 1] / 127.5 - 1, bz = B[k + 2] / 127.5 - 1;
+        const rx = ax * 0.8 + bx, ry = ay * 0.8 + by, rz = az * bz, l = Math.hypot(rx, ry, rz) || 1;
+        a[k] = (rx / l * 0.5 + 0.5) * 255; a[k + 1] = (ry / l * 0.5 + 0.5) * 255; a[k + 2] = (rz / l * 0.5 + 0.5) * 255;
+      }
+      x.putImageData(A, 0, 0);
+      const paintNormal = asTex(c, TEX.paint.normal), paintRough = asTex(tiled(pr.image, n, 2)[0], TEX.paint.rough);
+      [M.hull, M.panel, M.tank].forEach(m => Object.assign(m, { normalMap: paintNormal, normalScale: new THREE.Vector2(0.9, 0.9), roughnessMap: paintRough, roughness: 1.1, needsUpdate: true }));
+      [mn, mr, mc].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2); t.anisotropy = 8; });
+      mc.encoding = THREE.sRGBEncoding;
+      Object.assign(M.alu, { map: mc, normalMap: mn, roughnessMap: mr, roughness: 1, metalness: 0.95, color: new THREE.Color(0xffffff), needsUpdate: true });
+    }).catch(() => {});
+    // HDRI stored as raw RGBE bytes (512 × 256) in base64, decoded straight into an HDR texture
+    fetch("tex/warehouse_rgbe_512.txt").then(r => { if (!r.ok) throw 0; return r.text(); }).then(b64 => {
+      const bin = atob(b64.trim()), data = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+      const t = new THREE.DataTexture(data, 512, 256, THREE.RGBAFormat, THREE.UnsignedByteType);
+      t.encoding = THREE.RGBEEncoding; t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.flipY = true; t.needsUpdate = true;
+      const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromEquirectangular(t).texture; t.dispose(); pm.dispose();
+      const k = { hull: 0.22, panel: 0.22, tank: 0.3, alu: 0.55, carbon: 0.45, dark: 0.4, glass: 0.9, accent: 0.3, batt: 0.3, inner: 0.2, pcb: 0.3, cable: 0.3, rubber: 0.2 };
+      Object.entries(k).forEach(([n, v]) => { if (M[n]) M[n].envMapIntensity = v; });
+    }).catch(() => {});
+  })();
+
+  // Each stage gets its own edge material so the active stage can light up.
+  const edgeMats = STAGES.map(() => new THREE.LineBasicMaterial({ color: 0x3f4f59, transparent: true, opacity: 0.5 }));
+  const members = []; // { group, home, off, rot, stage, spin }
+
+  // mesh(group, geometry, material, stage, position, rotation, edges?)
+  function mesh(group, geo, mat, stage, pos, rot, edges = true) {
+    const m = new THREE.Mesh(geo, mat);
+    if (pos) m.position.set(pos[0], pos[1], pos[2]);
+    if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+    m.castShadow = true; m.receiveShadow = true;
+    if (edges) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 28), edgeMats[stage]));
+    group.add(m); return m;
+  }
+  const detail = (g, geo, mat, stage, pos, rot) => mesh(g, geo, mat, stage, pos, rot, false);
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5;
+  function member(stage, home, off, build, spin) {
+    const g = new THREE.Group(); build(g); scene.add(g);
+    members.push({ group: g, stage, home: new THREE.Vector3(...home), off: new THREE.Vector3(...off), rot: new THREE.Euler(rnd() * 2.2, rnd() * 2.2, rnd() * 2.2), spin });
+    return g;
+  }
+  const alongX = (geo) => { geo.rotateZ(Math.PI / 2); return geo; };
+  function extruded(points, depth, bevel) {
+    const s = new THREE.Shape(); s.moveTo(...points[0]); points.slice(1).forEach(p => s.lineTo(...p)); s.lineTo(...points[0]);
+    const geo = new THREE.ExtrudeGeometry(s, bevel ? { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2 } : { depth, bevelEnabled: false });
+    geo.translate(0, 0, -depth / 2); return geo;
+  }
+
+  // Fuselage profile: [radius, x] from tail to nose. 1 scene unit = 2 m.
+  const PROF = [[0.0, -1.55], [0.045, -1.5], [0.165, -1.1], [0.232, -0.4], [0.255, 0.35], [0.225, 0.9], [0.15, 1.3], [0.06, 1.52], [0.0, 1.58]]; // max Ø 31 cm
+  const PS = new THREE.SplineCurve(PROF.map(([r, x]) => new THREE.Vector2(x, r))).getPoints(400);
+  const radiusAt = x => { if (x <= PS[0].x) return 0; for (let i = 1; i < PS.length; i++) if (x <= PS[i].x) { const a = PS[i - 1], b = PS[i]; return Math.max(0, a.y + (b.y - a.y) * (x - a.x) / (b.x - a.x)); } return 0; };
+  const prof = (x0, x1, dr = 0, n = 48) => Array.from({ length: n }, (_, i) => { const x = x0 + (x1 - x0) * i / (n - 1); return new THREE.Vector2(radiusAt(x) + dr, x); });
+  // Lathe around x. phi 7π/6 → 11π/6 is the top of the fuselage (the open bay).
+  const TOP0 = 7 * Math.PI / 6, TOPL = 2 * Math.PI / 3;
+  const shell = (pts, phi0 = 0, phiL = Math.PI * 2) => { const g = new THREE.LatheGeometry(pts, 64, phi0, phiL); g.rotateZ(-Math.PI / 2); return g; };
+
+  // Painted markings drawn on a canvas
+  function decal(draw, w, h, pw, ph) {
+    const c = document.createElement("canvas"); c.width = pw; c.height = ph; const x = c.getContext("2d"); draw(x, pw, ph);
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+    return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: t, transparent: true, roughness: 0.7, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+  }
+  const textDecal = (txt, w, h, color = "#c9cfcc", font = 600) => decal((x, W, H) => {
+    x.fillStyle = color; x.font = `${font} ${H * 0.72}px "Chakra Petch", Arial, sans-serif`; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(txt, W / 2, H / 2 + H * 0.04);
+  }, w, h, 512, Math.round(512 * h / w));
+  const stripeTex = () => { const c = document.createElement("canvas"); c.width = 128; c.height = 32; const x = c.getContext("2d");
+    x.fillStyle = "#101214"; x.fillRect(0, 0, 128, 32); x.fillStyle = "#d9dcde";
+    for (let i = -2; i < 10; i++) { x.beginPath(); x.moveTo(i * 16, 32); x.lineTo(i * 16 + 8, 32); x.lineTo(i * 16 + 24, 0); x.lineTo(i * 16 + 16, 0); x.fill(); }
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
+  const stripes = new THREE.MeshStandardMaterial({ map: stripeTex(), roughness: 0.6 });
+
+  // 01 Rumpf — open lower shell + closed nose and tail cones
+  member(0, [0, 0, 0], [0, 0.6, 0], g => {
+    mesh(g, shell(prof(-1.25, 1.4), TOP0 + TOPL, Math.PI * 2 - TOPL), M.hull, 0);
+    mesh(g, shell(prof(-1.55, -1.25, 0, 8)), M.hull, 0);
+    mesh(g, shell(prof(1.4, 1.58, 0, 8)), M.hull, 0);
+    // internal floor / frames so the open bay reads as a real structure
+    detail(g, new THREE.BoxGeometry(2.4, 0.012, 0.24), M.inner, 0, [0.05, -0.15, 0]);
+    [-1.1, -0.4, 0.42, 0.92].forEach(x => {
+      const t = new THREE.TorusGeometry(radiusAt(x) - 0.012, 0.012, 6, 48, Math.PI * 2 - TOPL); t.rotateZ(-Math.PI / 2 + TOPL / 2); t.rotateY(Math.PI / 2);
+      detail(g, t, M.inner, 0, [x, 0, 0]);
+    });
+    [-1.25, 1.4].forEach(x => { const t = new THREE.TorusGeometry(radiusAt(x) + 0.002, 0.004, 6, 64); t.rotateY(Math.PI / 2); detail(g, t, M.seam, 0, [x, 0, 0]); });
+    detail(g, new THREE.SphereGeometry(0.075, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2.4), M.glass, 0, [1.42, 0.055, 0], [0, 0, -1.05]);
+    detail(g, alongX(new THREE.CylinderGeometry(0.008, 0.008, 0.3, 8)), M.alu, 0, [1.68, -0.03, 0]);
+    // NACA intake on the flank
+    [1, -1].forEach(s => detail(g, new THREE.BoxGeometry(0.12, 0.035, 0.01), M.seam, 0, [-0.62, -0.05, (radiusAt(-0.62) - 0.003) * s], [0, 0, 0]));
+  });
+  // 02 Antriebseinheit — rotary engine, generator, drive shaft
+  member(1, [0, 0, 0], [-0.4, 2.4, 0], g => {
+    mesh(g, new THREE.BoxGeometry(0.28, 0.2, 0.24), M.dark, 1, [-0.85, -0.02, 0]);
+    for (let i = 0; i < 6; i++) detail(g, new THREE.BoxGeometry(0.012, 0.21, 0.25), M.alu, 1, [-0.96 + i * 0.045, -0.02, 0]);
+    [0.06, -0.06].forEach(z => mesh(g, new THREE.CylinderGeometry(0.035, 0.035, 0.12, 18), M.alu, 1, [-0.6, 0.0, z]));
+    detail(g, new THREE.BoxGeometry(0.16, 0.012, 0.2), M.pcb, 1, [-0.6, -0.065, 0]);
+    detail(g, alongX(new THREE.CylinderGeometry(0.008, 0.008, 0.62, 6)), M.cable, 1, [-1.15, 0.03, 0.04]);
+    detail(g, alongX(new THREE.CylinderGeometry(0.008, 0.008, 0.62, 6)), M.dark, 1, [-1.15, 0.03, -0.04]);
+  });
+  // 03 Kraftstofftank
+  member(2, [0, 0, 0], [0.1, 2.9, 0], g => {
+    mesh(g, new THREE.BoxGeometry(0.4, 0.17, 0.24), M.batt, 2, [0.24, -0.04, 0]);
+    detail(g, new THREE.BoxGeometry(0.26, 0.004, 0.14), M.accent, 2, [0.22, 0.047, 0]);
+    [0.07, -0.07].forEach(z => detail(g, new THREE.BoxGeometry(0.04, 0.07, 0.06), z > 0 ? M.navR : M.dark, 2, [0.02, -0.03, z * 0.8]));
+    [0.07, 0.41].forEach(x => detail(g, new THREE.BoxGeometry(0.03, 0.18, 0.25), M.dark, 2, [x, -0.04, 0]));
+  });
+  // 04 Pufferakkus — two stacked packs for vertical flight
+  member(3, [0, 0, 0], [0.4, 3.3, 0.3], g => {
+    [-0.06].forEach((y, i) => {
+      mesh(g, new THREE.BoxGeometry(0.38, 0.12, 0.2), M.batt, 3, [0.66, y, 0]);
+      detail(g, new THREE.BoxGeometry(0.2, 0.004, 0.1), M.accent, 3, [0.62, y + 0.062, 0]);
+      detail(g, new THREE.BoxGeometry(0.03, 0.05, 0.05), i ? M.navR : M.dark, 3, [0.865, y, 0.05]);
+    });
+  });
+  // 05 Avionikbucht — flight computer, IMU, datalink modem
+  member(4, [0, 0, 0], [0.9, 2.6, -0.2], g => {
+    mesh(g, new THREE.BoxGeometry(0.3, 0.13, 0.17), M.dark, 4, [1.1, -0.02, 0]);
+    [[1.02, 0.06, 0.04, M.pcb], [1.16, 0.06, -0.04, M.pcb], [1.1, 0.065, 0.05, M.accent]].forEach(([x, y, z, m]) =>
+      detail(g, new THREE.BoxGeometry(0.08, 0.02, 0.05), m, 4, [x, y, z]));
+    detail(g, new THREE.CylinderGeometry(0.008, 0.008, 0.5, 6), M.cable, 4, [0.78, 0.0, 0.1], [0, 0, Math.PI / 2 - 0.1]);
+  });
+  // 06 Abdeckungen — three top panels close the bay
+  member(5, [0, 0, 0], [0, 3.8, 0], g => {
+    mesh(g, shell(prof(-1.25, -0.4, 0.004, 10), TOP0, TOPL), M.panel, 5);
+    mesh(g, shell(prof(-0.4, 0.92, 0.004, 14), TOP0, TOPL), M.hull, 5);
+    mesh(g, shell(prof(0.92, 1.4, 0.004, 8), TOP0, TOPL), M.panel, 5);
+    detail(g, new THREE.BoxGeometry(0.22, 0.05, 0.12), M.panel, 5, [-0.72, radiusAt(-0.72) + 0.012, 0]); // intake scoop
+    detail(g, new THREE.BoxGeometry(0.02, 0.04, 0.1), M.seam, 5, [-0.62, radiusAt(-0.62) + 0.02, 0]);
+    for (let k = 0; k < 5; k++) detail(g, new THREE.BoxGeometry(0.1, 0.01, 0.012), M.seam, 5, [-1.0, radiusAt(-1.0) + 0.004, -0.06 + k * 0.03]);
+    for (let i = 0; i < 6; i++) [0.1, -0.1].forEach(z => detail(g, new THREE.SphereGeometry(0.007, 6, 4), M.alu, 5, [-0.3 + i * 0.22, radiusAt(-0.3 + i * 0.22) + 0.004 - Math.abs(z) * 0.06, z]));
+  });
+  // 07 Tragflächen
+  function wing(g, side) {
+    const geo = extruded([[0.36, 0], [0.06, 2.4 * side], [-0.18, 2.4 * side], [-0.26, 0]], 0.03, 0.012);
+    geo.rotateX(Math.PI / 2);
+    mesh(g, geo, M.hull, 6);
+    detail(g, new THREE.BoxGeometry(0.1, 0.03, 0.95), M.panel, 6, [-0.17, -0.028, 1.75 * side], [0, 0.034 * side, 0]);
+    detail(g, new THREE.BoxGeometry(0.1, 0.03, 0.6), M.panel, 6, [-0.22, -0.028, 0.75 * side], [0, 0.034 * side, 0]);
+    detail(g, new THREE.SphereGeometry(0.026, 12, 8), side > 0 ? M.navG : M.navR, 6, [-0.06, 0, 2.42 * side]);
+    for (let i = 0; i < 7; i++) detail(g, new THREE.SphereGeometry(0.008, 6, 4), M.alu, 6, [0.2 - i * 0.07, 0.03, 0.42 * side]);
+
+    const tc = textDecal("HX-901", 0.5, 0.11, "#c3cac6", 700); tc.rotation.x = -Math.PI / 2; tc.position.set(-0.02, 0.029, 1.55 * side); g.add(tc);
+  }
+  member(6, [0, 0.28, 0], [0.1, 1.0, 2.7], g => wing(g, 1));
+  member(6, [0, 0.28, 0], [0.1, 1.0, -2.7], g => wing(g, -1));
+  // 08 VTOL-Ausleger
+  [1, -1].forEach(sz => member(7, [0, 0.225, 1.1 * sz], [0, -2.3, 0.9 * sz], g => {
+    mesh(g, alongX(new THREE.CylinderGeometry(0.025, 0.025, 2.1, 20)), M.carbon, 7);
+    [1.05, -1.05].forEach(x => detail(g, new THREE.SphereGeometry(0.025, 16, 10), M.carbon, 7, [x, 0, 0]));
+    [0.3, -0.3].forEach(x => detail(g, alongX(new THREE.CylinderGeometry(0.031, 0.031, 0.09, 20)), M.alu, 7, [x, 0, 0]));
+    [0.78, -0.78].forEach(x => detail(g, alongX(new THREE.CylinderGeometry(0.027, 0.027, 0.1, 20)), stripes, 7, [x, 0, 0]));
+  }));
+  // 09 Hubmotoren
+  const corners = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+  corners.forEach(([sx, sz]) => member(8, [1.05 * sx, 0.32, 1.1 * sz], [0.7 * sx, 1.9, 1.0 * sz], g => {
+    mesh(g, new THREE.CylinderGeometry(0.07, 0.085, 0.08, 24), M.dark, 8, [0, -0.03, 0]);
+    detail(g, new THREE.CylinderGeometry(0.078, 0.078, 0.06, 24), M.alu, 8, [0, 0.04, 0]);
+    for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; detail(g, new THREE.BoxGeometry(0.012, 0.05, 0.03), M.dark, 8, [Math.cos(a) * 0.082, 0.04, Math.sin(a) * 0.082], [0, -a, 0]); }
+    detail(g, new THREE.CylinderGeometry(0.079, 0.079, 0.012, 24), M.accent, 8, [0, 0.074, 0]);
+  }));
+  // 10 Hubrotoren
+  const bladeGeo = () => { const geo = extruded([[0.03, -0.036], [0.39, -0.014], [0.4, 0.004], [0.39, 0.02], [0.03, 0.036]], 0.008, 0.003); geo.rotateX(Math.PI / 2); return geo; };
+  corners.forEach(([sx, sz], i) => member(9, [1.05 * sx, 0.42, 1.1 * sz], [0.9 * sx, 3.1, 1.3 * sz], g => {
+    mesh(g, new THREE.CylinderGeometry(0.035, 0.04, 0.05, 16), M.dark, 9);
+    detail(g, new THREE.ConeGeometry(0.035, 0.05, 16), M.alu, 9, [0, 0.05, 0]);
+    [0, Math.PI].forEach(r => { mesh(g, bladeGeo(), M.carbon, 9, [0, 0.005, 0], [0.16, r, 0]); detail(g, new THREE.BoxGeometry(0.04, 0.011, 0.034), M.accent, 9, [0.37 * Math.cos(r), 0.006, 0], [0.16, r, 0]); });
+  }, { axis: "y", dir: i % 2 ? 1 : -1 }));
+  // 11 V-Leitwerk
+  member(10, [-1.3, 0.09, 0], [-1.7, 1.5, 0], g => {
+    [0.75, -0.75].forEach(a => {
+      const pivot = new THREE.Group(); pivot.rotation.x = a; g.add(pivot);
+      mesh(pivot, extruded([[0.22, 0], [0.04, 0.66], [-0.15, 0.66], [-0.21, 0]], 0.014, 0.006), M.hull, 10);
+      detail(pivot, new THREE.BoxGeometry(0.08, 0.5, 0.026), M.panel, 10, [-0.16, 0.36, 0], [0, 0, 0.1]);
+      [1, -1].forEach(s => { const d = textDecal("901", 0.16, 0.07, "#c3cac6", 700); d.position.set(0.0, 0.3, 0.0215 * s); if (s < 0) d.rotation.y = Math.PI; pivot.add(d); });
+    });
+  });
+  // 12 Druckpropeller
+  member(11, [-1.62, 0, 0], [-2.6, 0.3, 0], g => {
+    mesh(g, new THREE.ConeGeometry(0.07, 0.16, 24).rotateZ(Math.PI / 2), M.alu, 11, [-0.06, 0, 0]);
+    detail(g, alongX(new THREE.CylinderGeometry(0.07, 0.07, 0.04, 24)), M.dark, 11, [0.03, 0, 0]);
+    [0, Math.PI].forEach(r => { const b = bladeGeo(); b.rotateZ(Math.PI / 2); mesh(g, b, M.carbon, 11, [0, 0, 0], [r, 0.18, 0]); });
+  }, { axis: "x", dir: 1 });
+  // 13 Sensorturm
+  member(12, [0.95, -0.36, 0], [1.9, -1.7, 0.4], g => {
+    mesh(g, new THREE.CylinderGeometry(0.05, 0.06, 0.1, 20), M.dark, 12, [0, 0.13, 0]);
+    [0.12, -0.12].forEach(z => detail(g, new THREE.BoxGeometry(0.05, 0.16, 0.02), M.dark, 12, [0, 0.05, z]));
+    mesh(g, new THREE.SphereGeometry(0.135, 32, 24), M.hull, 12);
+    detail(g, alongX(new THREE.CylinderGeometry(0.062, 0.062, 0.03, 24)), M.accent, 12, [0.115, -0.02, 0]);
+    detail(g, alongX(new THREE.CylinderGeometry(0.052, 0.052, 0.04, 24)), M.glass, 12, [0.128, -0.02, 0]);
+    detail(g, alongX(new THREE.CylinderGeometry(0.024, 0.024, 0.04, 16)), M.glass, 12, [0.118, 0.06, 0.055]);
+    detail(g, alongX(new THREE.CylinderGeometry(0.016, 0.016, 0.04, 12)), M.glass, 12, [0.118, 0.06, -0.055]);
+  });
+  // 14 Antennen — GNSS puck, datalink whip, ventral blade, IFF stub
+  member(13, [0, 0, 0], [0, 2.8, -0.4], g => {
+    mesh(g, new THREE.CylinderGeometry(0.07, 0.075, 0.025, 32), M.alu, 13, [0.62, radiusAt(0.62) + 0.016, 0]);
+    detail(g, new THREE.CylinderGeometry(0.05, 0.05, 0.004, 32), M.dark, 13, [0.62, radiusAt(0.62) + 0.03, 0]);
+    mesh(g, new THREE.CylinderGeometry(0.008, 0.014, 0.42, 10), M.dark, 13, [-0.98, 0.42, 0], [0, 0, 0.35]);
+    detail(g, new THREE.SphereGeometry(0.018, 10, 8), M.accent, 13, [-1.05, 0.62, 0]);
+    mesh(g, extruded([[0.08, 0], [0.0, 0.14], [-0.05, 0.14], [-0.08, 0]], 0.012, 0.004), M.dark, 13, [-0.25, -0.225, 0], [Math.PI, 0, 0]);
+    mesh(g, extruded([[0.04, 0], [0.0, 0.08], [-0.03, 0.08], [-0.04, 0]], 0.01, 0.003), M.dark, 13, [1.2, -0.17, 0], [Math.PI, 0, 0]);
+  });
+  // 15 Landekufen
+  member(14, [0, 0, 0], [0, -2.6, 0], g => {
+    [1, -1].forEach(sz => {
+      mesh(g, alongX(new THREE.CylinderGeometry(0.02, 0.02, 1.4, 14)), M.alu, 14, [0.1, -0.62, 0.23 * sz]);
+      [0.8, -0.6].forEach(x => detail(g, new THREE.SphereGeometry(0.022, 10, 8), M.rubber, 14, [x, -0.62, 0.23 * sz]));
+      [0.45, -0.25].forEach(x => {
+        mesh(g, new THREE.BoxGeometry(0.03, 0.4, 0.022), M.alu, 14, [x, -0.43, 0.17 * sz], [-0.3 * sz, 0, 0]);
+        detail(g, new THREE.BoxGeometry(0.08, 0.02, 0.05), M.rubber, 14, [x, -0.63, 0.23 * sz]);
+      });
+    });
+  });
+
+  const N = STAGES.length, START = 0.04, DUR = 0.11, STEP = (0.94 - START - DUR) / (N - 1);
+  const window_ = i => [START + i * STEP, START + i * STEP + DUR];
+  const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const clamp01 = t => Math.max(0, Math.min(1, t));
+  const stageT = (i, p) => { const [a, b] = window_(i); return clamp01((p - a) / (b - a)); };
+
+  const overlay = $("overlay"), octx = overlay.getContext("2d");
+  let W = 1, H = 1, dpr = 1;
+  // Post-processing: ambient occlusion, gentle bloom on lights, gamma, anti-aliasing
+  let composer = null, ssao = null, fxaa = null;
+  if (THREE.EffectComposer && THREE.SSAOPass && THREE.UnrealBloomPass) {
+    try {
+      composer = new THREE.EffectComposer(renderer);
+      ssao = new THREE.SSAOPass(scene, camera, 2, 2);
+      ssao.kernelRadius = 0.16; ssao.minDistance = 0.0004; ssao.maxDistance = 0.03;
+      composer.addPass(ssao);
+      composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(512, 512), 0.22, 0.35, 0.97));
+      composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
+      fxaa = new THREE.ShaderPass(THREE.FXAAShader); composer.addPass(fxaa);
+    } catch (e) { composer = null; }
+  }
+  function resize() {
+    W = stageEl.clientWidth; H = stageEl.clientHeight; dpr = Math.min(window.devicePixelRatio || 1, 2);
+    renderer.setSize(W, H, false);
+    if (composer) { const pr = renderer.getPixelRatio(); composer.setSize(W, H); ssao.setSize(W * pr, H * pr); fxaa.material.uniforms.resolution.value.set(1 / (W * pr), 1 / (H * pr)); }
+    camera.aspect = W / H;
+    if (W > 860) camera.setViewOffset(W, H, -W * 0.08, 0, W, H); else camera.clearViewOffset();
+    camera.updateProjectionMatrix();
+    overlay.width = W * dpr; overlay.height = H * dpr;
+  }
+  window.addEventListener("resize", resize); resize();
+
+  function scrollProgress() {
+    const r = track.getBoundingClientRect();
+    const span = r.height - stageEl.clientHeight;
+    return span > 0 ? clamp01(-r.top / span) : 0;
+  }
+
+  let p = scrollProgress(), shown = -2;
+  const callout = $("callout");
+  const tmp = new THREE.Vector3();
+  const qHome = new THREE.Quaternion(), qOff = new THREE.Quaternion();
+
+  function updateHud(active, prog) {
+    let mass = 0;
+    STAGES.forEach((s, i) => { mass += s.mass * stageT(i, prog); });
+    $("pct").textContent = Math.round(prog >= window_(N - 1)[1] ? 100 : prog / window_(N - 1)[1] * 100);
+    $("mass").textContent = fmt(mass);
+    $("barFill").style.width = (mass / TOTAL * 100).toFixed(1) + "%";
+    const done = stageT(N - 1, prog) >= 1;
+    $("statusTxt").textContent = done ? "Assemblé, prêt au vol" : (prog < START ? "Démonté" : "Montage en cours");
+    lis.forEach((li, i) => {
+      li.classList.toggle("done", stageT(i, prog) >= 1 && i !== active);
+      li.classList.toggle("active", i === active);
+    });
+    if (active === shown) return;
+    shown = active;
+    edgeMats.forEach((m, i) => { m.color.setHex(i === active ? 0xffffff : 0x3a3f43); m.opacity = i === active ? 1 : 0.45; });
+    if (active >= 0) {
+      const s = STAGES[active], k = `Étape ${String(active + 1).padStart(2, "0")} / ${N}`;
+      $("cK").textContent = k + " · " + s.de; $("cT").textContent = s.name; $("cD").textContent = `${s.mat} · ${fmt(s.mass)} kg. ${s.note}`;
+      $("mK").textContent = k; $("mM").textContent = fmt(s.mass) + " kg"; $("mT").textContent = s.name + " · " + s.de; $("mD").textContent = s.mat;
+    } else {
+      $("mK").textContent = done ? "Montage terminé" : "Prêt"; $("mM").textContent = fmt(TOTAL) + " kg";
+      $("mT").textContent = done ? "Falke HX-9 assemblé" : "Drone démonté";
+      $("mD").textContent = done ? N + " sous-ensembles en place." : "Défile pour lancer le montage.";
+    }
+  }
+  // Lists stay in sync at rest (already-completed steps) even before the first frame
+  lis.forEach((li, i) => li.classList.toggle("done", stageT(i, p) >= 1));
+
+  const clock = new THREE.Clock();
+  let spinAngle = 0;
+  function frame() {
+    const dt = Math.min(clock.getDelta(), 0.05);
+    const target = scrollProgress();
+    p += (target - p) * (reduceMotion ? 1 : Math.min(1, dt * 7));
+    const assembled = clamp01((p - window_(N - 1)[1]) / 0.03);
+
+    // active stage = the last one whose window has started and isn't fully done
+    let active = -1;
+    for (let i = 0; i < N; i++) { const t = stageT(i, p); if (t > 0 && t < 1) active = i; }
+    if (active === -1 && p >= START && assembled < 1) {
+      for (let i = 0; i < N; i++) if (stageT(i, p) >= 1) active = i;
+    }
+    if (assembled >= 1) active = -1;
+
+    spinAngle += dt * (reduceMotion ? 0 : 22);
+    members.forEach(m => {
+      const t = ease(stageT(m.stage, p));
+      m.group.position.copy(m.home).addScaledVector(m.off, 1 - t);
+      qOff.setFromEuler(m.rot); qHome.identity();
+      m.group.quaternion.copy(qOff).slerp(qHome, t);
+      if (m.spin) {
+        const sp = spinAngle * t * m.spin.dir;
+        if (m.spin.axis === "y") m.group.rotateY(sp % (Math.PI * 2)); else m.group.rotateX(sp % (Math.PI * 2));
+      }
+    });
+
+    const wide = W / H;
+    const zoomFit = wide < 1 ? 1.55 : wide < 1.3 ? 1.2 : 1;
+    const e = ease(clamp01((p - START) / (window_(N - 1)[1] - START)));
+    const idle = reduceMotion ? 0 : Math.sin(clock.elapsedTime * 0.18) * 0.3 * assembled;
+    const ang = 2.2 - e * 1.45 + idle;
+    const R = (15.5 - e * 6.4) * zoomFit, h = 6.2 - e * 2.6;
+    camera.position.set(Math.cos(ang) * R, h, Math.sin(ang) * R);
+    camera.lookAt(0, (wide < 1 ? -0.1 : 0.1) + (1 - e) * 1.1, 0);
+    if (composer) composer.render(); else renderer.render(scene, camera);
+
+    updateHud(active, p);
+
+    // Leader line from the active part to the callout
+    octx.setTransform(dpr, 0, 0, dpr, 0, 0); octx.clearRect(0, 0, W, H);
+    if (active >= 0 && W > 860) {
+      const g = members.find(m => m.stage === active).group;
+      new THREE.Box3().setFromObject(g).getCenter(tmp);
+      tmp.project(camera);
+      const x = (tmp.x + 1) / 2 * W, y = (1 - tmp.y) / 2 * H;
+      const bw = 250, bh = callout.offsetHeight || 90;
+      let lx = x + (x < W * 0.6 ? 70 : -70 - bw), ly = y - 90;
+      lx = Math.max(300, Math.min(W - bw - 20, lx)); ly = Math.max(20, Math.min(H - bh - 140, ly));
+      callout.style.transform = `translate(${lx}px, ${ly}px)`; callout.classList.add("on");
+      const ax = lx < x ? lx + bw : lx, ay = ly + bh / 2;
+      octx.strokeStyle = "#ffffff"; octx.lineWidth = 1; octx.globalAlpha = 0.9;
+      octx.beginPath(); octx.moveTo(x, y); octx.lineTo(ax + (lx < x ? 14 : -14), ay); octx.lineTo(ax, ay); octx.stroke();
+      octx.fillStyle = "#ffffff"; octx.beginPath(); octx.arc(x, y, 3.5, 0, Math.PI * 2); octx.fill();
+      octx.globalAlpha = 0.35; octx.beginPath(); octx.arc(x, y, 9, 0, Math.PI * 2); octx.stroke();
+      octx.globalAlpha = 1;
+    } else callout.classList.remove("on");
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
