@@ -1,4 +1,6 @@
 # Falke HX-9
+<img width="2528" height="1696" alt="Gemini_Generated_Image_sx1aiwsx1aiwsx1a" src="https://github.com/user-attachments/assets/def2c1b8-fb70-486f-9c05-9099da9a4c23" />
+
 
 Vue éclatée 3D d'un drone tactique VTOL inventé. Au défilement, ses 15 sous-ensembles se remontent dans l'ordre de montage. En bas de page, un dossier de pré-dimensionnement détaille les calculs : masse, centrage, aérodynamique, rotors, batterie, structure, virages, mission.
 
