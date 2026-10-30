@@ -45,6 +45,8 @@ h1 .reg { color: var(--accent); }
 .lede { max-width: 58ch; color: var(--muted); font-size: 18px; margin: 0; }
 .lede strong { color: var(--fg); font-weight: 500; }
 .scroll-hint { margin-top: 28px; font-family: var(--f-mono); font-size: 13px; color: var(--fg); display: inline-flex; align-items: center; gap: 10px; }
+.sim-link { display: inline-block; margin: 18px 0 0 24px; font-family: var(--f-mono); font-size: 13px; color: var(--fg); text-decoration: none; border: 1px solid var(--fg); border-radius: 3px; padding: 8px 14px; }
+.sim-link:hover, .sim-link:focus-visible { background: var(--fg); color: var(--bg); }
 .scroll-hint i { display: inline-block; width: 1px; height: 26px; background: linear-gradient(var(--accent), transparent); }
 
 /* Scroll track */
@@ -150,6 +152,7 @@ tr.tot td { border-bottom: 0; font-weight: 500; }
     <h1>Falke <span class="reg">HX-9</span></h1>
     <p class="lede">Un drone tactique de reconnaissance à décollage vertical : 19 kg, 2,9 m d'envergure, tout électrique, environ 1 h 20 d'autonomie. Il tient dans un véhicule et se déploie en quelques minutes. Démonté pièce par pièce. <strong>Fais défiler</strong> : chaque sous-ensemble revient à sa place, dans l'ordre réel de montage, du fuselage jusqu'au train d'atterrissage.</p>
     <div class="scroll-hint"><i aria-hidden="true"></i>Défile pour assembler</div>
+    <a class="sim-link" href="simulateur.html">Piloter le drone dans le simulateur →</a>
   </div>
 </header>
 
