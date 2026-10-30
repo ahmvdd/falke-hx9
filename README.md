@@ -8,6 +8,9 @@ Vue éclatée 3D d'un drone tactique VTOL inventé. Au défilement, ses 15 sous-
 - Modèle entièrement procédural, construit en code, sans fichier 3D.
 - Site statique : aucun build, `index.html` + le dossier `tex/`.
 
+- <img width="909" height="494" alt="image" src="https://github.com/user-attachments/assets/ea17e47b-48d7-431c-b70b-3c6d4210f458" />
+
+
 ## Lancer en local
 
 ```bash
