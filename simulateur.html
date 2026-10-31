@@ -189,7 +189,7 @@ kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = 0.82;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -221,8 +221,8 @@ kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line)
   })();
 
   // Daylight: sky dome bounce + sun with a shadow box that follows the drone
-  scene.add(new THREE.HemisphereLight(0xdfe9f2, 0x5b6343, 0.75));
-  const sun = new THREE.DirectionalLight(0xfff3e0, 1.8);
+  scene.add(new THREE.HemisphereLight(0xdfe9f2, 0x4f5a38, 0.5));
+  const sun = new THREE.DirectionalLight(0xfff1dc, 1.65);
   sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, near: 1, far: 120 });
   sun.shadow.bias = -0.0004;
@@ -546,21 +546,91 @@ kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line)
   const WORLD = 4000; // metres
   const rand = (() => { let s = 20261030; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
 
-  // Farmland seen from above: fields, hedges, roads, a village
+  // Countryside generated from one layout, so the painted ground and the 3D objects agree:
+  // irregular fields with crop rows, hedgerows, woods, a river, roads and a village.
+  const N = 4096, toPx = v => (v / WORLD + 0.5) * N, toW = p => (p / N - 0.5) * WORLD;
+  const WOODS = [[-900, 600, 260], [700, 950, 220], [-450, -1250, 300], [1350, -250, 200], [-1500, -300, 240], [200, 1500, 180]];
+  const VILLAGE = [650, -560];
+  const forest = document.createElement("canvas"); forest.width = forest.height = 512; const fx = forest.getContext("2d");
   const groundTex = (function () {
-    const n = 2048, c = document.createElement("canvas"); c.width = c.height = n; const x = c.getContext("2d");
-    x.fillStyle = "#6f7a4a"; x.fillRect(0, 0, n, n);
-    const palette = ["#7b8650", "#8d9356", "#a39a62", "#6a7744", "#93884f", "#5f6c3c", "#9fa168", "#857c4c", "#b0a46e"];
-    for (let gy = 0; gy < n; gy += 64) for (let gx = 0; gx < n; gx += 64) {
-      const w = 64 * (1 + (rand() * 2 | 0)), h = 64 * (1 + (rand() * 2 | 0));
-      x.fillStyle = palette[rand() * palette.length | 0]; x.fillRect(gx + 1, gy + 1, w - 2, h - 2);
-      x.strokeStyle = "rgba(60,70,40,.35)"; x.lineWidth = 1;
-      if (rand() < 0.5) for (let k = 4; k < w; k += 4) { x.beginPath(); x.moveTo(gx + k, gy + 1); x.lineTo(gx + k, gy + h - 1); x.stroke(); }
-    }
-    for (let i = 0; i < 26000; i++) { const v = rand(); x.fillStyle = `rgba(${40 + v * 40 | 0},${50 + v * 40 | 0},${25 + v * 20 | 0},.18)`; x.fillRect(rand() * n, rand() * n, 2, 2); }
-    x.strokeStyle = "#8b8a84"; x.lineWidth = 5;
-    [[0, 1024, 2048, 1024], [1024, 0, 1024, 2048], [0, 300, 2048, 1700], [1500, 0, 1300, 2048]].forEach(([a, b, c2, d]) => { x.beginPath(); x.moveTo(a, b); x.lineTo(c2, d); x.stroke(); });
-    x.fillStyle = "#9b958a"; for (let i = 0; i < 70; i++) x.fillRect(1260 + rand() * 180, 640 + rand() * 160, 4 + rand() * 6, 4 + rand() * 6);
+    const c = document.createElement("canvas"); c.width = c.height = N; const x = c.getContext("2d");
+    x.fillStyle = "#71804a"; x.fillRect(0, 0, N, N);
+    // Parcels: recursive splits inside a slightly rotated frame
+    const crops = [
+      { base: "#6f8840", row: "rgba(55,70,35,.35)", gap: 5 },   // young cereals
+      { base: "#b19a52", row: "rgba(120,100,55,.35)", gap: 4 }, // wheat
+      { base: "#c2b642", row: "rgba(140,130,45,.3)", gap: 4 },  // rapeseed
+      { base: "#6e5a40", row: "rgba(60,48,35,.45)", gap: 6 },   // ploughed
+      { base: "#5f7e38", row: null, gap: 0 },                   // meadow
+      { base: "#7d9046", row: "rgba(70,85,40,.3)", gap: 7 },    // maize
+      { base: "#98834f", row: "rgba(90,75,50,.35)", gap: 5 }    // stubble
+    ];
+    x.save(); x.translate(N / 2, N / 2); x.rotate(0.21); x.translate(-N / 2, -N / 2);
+    const parcels = [];
+    (function split(px, py, w, h, depth) {
+      if (depth > 6 || (w < 260 && h < 260) || (depth > 3 && rand() < 0.18)) { parcels.push([px, py, w, h]); return; }
+      if (w > h) { const k = w * (0.3 + rand() * 0.4); split(px, py, k, h, depth + 1); split(px + k, py, w - k, h, depth + 1); }
+      else { const k = h * (0.3 + rand() * 0.4); split(px, py, w, k, depth + 1); split(px, py + k, w, h - k, depth + 1); }
+    })(-600, -600, N + 1200, N + 1200, 0);
+    parcels.forEach(([px, py, w, h]) => {
+      const cr = crops[rand() * crops.length | 0];
+      x.fillStyle = cr.base; x.fillRect(px, py, w, h);
+      // gentle tone variation inside the field
+      for (let i = 0; i < 6; i++) { const g = x.createRadialGradient(px + rand() * w, py + rand() * h, 0, px + rand() * w, py + rand() * h, 80 + rand() * 200);
+        g.addColorStop(0, rand() < 0.5 ? "rgba(255,250,220,.10)" : "rgba(30,35,15,.12)"); g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.fillRect(px, py, w, h); }
+      if (cr.row) {
+        x.save(); x.beginPath(); x.rect(px, py, w, h); x.clip(); x.strokeStyle = cr.row; x.lineWidth = 1.2;
+        const vertical = rand() < 0.5; x.beginPath();
+        if (vertical) for (let k = 2; k < w; k += cr.gap) { x.moveTo(px + k, py); x.lineTo(px + k, py + h); }
+        else for (let k = 2; k < h; k += cr.gap) { x.moveTo(px, py + k); x.lineTo(px + w, py + k); }
+        x.stroke();
+        // tractor tramlines
+        x.strokeStyle = "rgba(0,0,0,.14)"; x.lineWidth = 2; x.beginPath();
+        if (vertical) for (let k = 40; k < w; k += 90) { x.moveTo(px + k, py); x.lineTo(px + k, py + h); }
+        else for (let k = 40; k < h; k += 90) { x.moveTo(px, py + k); x.lineTo(px + w, py + k); }
+        x.stroke(); x.restore();
+      }
+      // hedgerow on some borders
+      x.strokeStyle = "rgba(48,60,30,.85)"; x.lineWidth = 3 + rand() * 2;
+      if (rand() < 0.6) { x.beginPath(); x.moveTo(px, py); for (let k = 0; k <= w; k += 20) x.lineTo(px + k, py + (rand() - 0.5) * 3); x.stroke(); }
+      if (rand() < 0.6) { x.beginPath(); x.moveTo(px, py); for (let k = 0; k <= h; k += 20) x.lineTo(px + (rand() - 0.5) * 3, py + k); x.stroke(); }
+    });
+    x.restore();
+    // Fine grain over everything
+    for (let i = 0; i < 60000; i++) { const v = rand(); x.fillStyle = `rgba(${30 + v * 50 | 0},${40 + v * 50 | 0},${20 + v * 25 | 0},.16)`; x.fillRect(rand() * N, rand() * N, 2, 2); }
+    // Woods: irregular blobs, also written to a mask used to plant the 3D trees
+    fx.fillStyle = "#000"; fx.fillRect(0, 0, 512, 512);
+    WOODS.forEach(([wx, wz, r]) => {
+      for (let i = 0; i < 26; i++) {
+        const a = rand() * 6.28, d = rand() * r * 0.75, rr = r * (0.25 + rand() * 0.35);
+        const cx = toPx(wx + Math.cos(a) * d), cy = toPx(wz + Math.sin(a) * d), pr = rr / WORLD * N;
+        x.fillStyle = "#3c4a2b"; x.beginPath(); x.arc(cx, cy, pr, 0, 7); x.fill();
+        fx.fillStyle = "#fff"; fx.beginPath(); fx.arc(cx / 8, cy / 8, pr / 8, 0, 7); fx.fill();
+      }
+    });
+    const fd0 = fx.getImageData(0, 0, 512, 512).data;
+    for (let i = 0; i < 30000; i++) { const px = rand() * N, py = rand() * N; if (fd0[((py / 8 | 0) * 512 + (px / 8 | 0)) * 4] > 128) { x.fillStyle = rand() < 0.5 ? "rgba(25,35,18,.55)" : "rgba(80,100,50,.4)"; x.beginPath(); x.arc(px, py, 3 + rand() * 4, 0, 7); x.fill(); } }
+    // River
+    x.lineCap = "round"; x.lineJoin = "round";
+    const river = new Path2D(); river.moveTo(0, toPx(1300)); river.bezierCurveTo(toPx(-1000), toPx(600), toPx(-200), toPx(1700), toPx(400), toPx(1150)); river.bezierCurveTo(toPx(900), toPx(700), toPx(1400), toPx(1500), N, toPx(1100));
+    x.strokeStyle = "#3f4c33"; x.lineWidth = 34; x.stroke(river);
+    x.strokeStyle = "#556a6c"; x.lineWidth = 22; x.stroke(river);
+    x.strokeStyle = "rgba(170,190,195,.25)"; x.lineWidth = 6; x.stroke(river);
+    // Roads and farm tracks
+    const road = (pts, w, col, edge) => { const p = new Path2D(); p.moveTo(toPx(pts[0][0]), toPx(pts[0][1])); for (let i = 1; i < pts.length - 1; i += 2) p.quadraticCurveTo(toPx(pts[i][0]), toPx(pts[i][1]), toPx(pts[i + 1][0]), toPx(pts[i + 1][1]));
+      if (edge) { x.strokeStyle = edge; x.lineWidth = w + 4; x.stroke(p); } x.strokeStyle = col; x.lineWidth = w; x.stroke(p); };
+    road([[-2000, -40], [-600, 60], [0, -30], [500, -200], [650, -560], [1200, -900], [2000, -1100]], 8, "#7b7c78", "#a19c86");
+    road([[650, -2000], [700, -1200], [650, -560], [520, 300], [200, 800], [-100, 1300], [-200, 2000]], 7, "#7b7c78", "#a19c86");
+    road([[-1800, -1800], [-1200, -900], [-700, -600], [-300, -200], [0, -30]], 5, "#85847d", "#a19c86");
+    for (let i = 0; i < 9; i++) { const sx = (rand() - 0.5) * 3600, sz = (rand() - 0.5) * 3600;
+      road([[sx, sz], [sx + (rand() - 0.5) * 500, sz + (rand() - 0.5) * 500], [sx + (rand() - 0.5) * 900, sz + (rand() - 0.5) * 900]], 3, "#a8996f", null); }
+    // Base: mown grass, gravel apron and access track
+    const g0 = x.createRadialGradient(toPx(0), toPx(0), 0, toPx(0), toPx(0), 140); g0.addColorStop(0, "#7d8e52"); g0.addColorStop(1, "rgba(125,142,82,0)");
+    x.fillStyle = g0; x.beginPath(); x.arc(toPx(0), toPx(0), 140, 0, 7); x.fill();
+    x.fillStyle = "#77786f"; x.fillRect(toPx(-44), toPx(-18), 36, 26);
+    road([[-28, 4], [-14, 10], [0, -30]], 4, "#9a978c", null);
+    // Village streets
+    for (let i = 0; i < 5; i++) road([[VILLAGE[0] - 150, VILLAGE[1] - 120 + i * 60], [VILLAGE[0], VILLAGE[1] - 100 + i * 60 + (rand() - 0.5) * 40], [VILLAGE[0] + 150, VILLAGE[1] - 120 + i * 60]], 4, "#7f7f7a", null);
     const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return t;
   })();
   const detailTex = (function () {
@@ -573,11 +643,11 @@ kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line)
   groundMat.onBeforeCompile = sh => {
     sh.uniforms.detailMap = { value: detailTex };
     sh.fragmentShader = "uniform sampler2D detailMap;\n" + sh.fragmentShader.replace("#include <map_fragment>",
-      "#include <map_fragment>\n diffuseColor.rgb *= mix(0.72, 1.18, texture2D(detailMap, vUv * 900.).r) * mix(0.9, 1.08, texture2D(detailMap, vUv * 60.).g);");
+      "#include <map_fragment>\n diffuseColor.rgb *= mix(0.78, 1.14, texture2D(detailMap, vUv * 1400.).r) * mix(0.9, 1.07, texture2D(detailMap, vUv * 90.).g);");
   };
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(WORLD, WORLD), groundMat);
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
-  const far = new THREE.Mesh(new THREE.PlaneGeometry(40000, 40000), new THREE.MeshBasicMaterial({ color: 0x77804f }));
+  const far = new THREE.Mesh(new THREE.PlaneGeometry(40000, 40000), new THREE.MeshBasicMaterial({ color: 0x75824c }));
   far.rotation.x = -Math.PI / 2; far.position.y = -0.5; scene.add(far);
 
   // Landing pad at the base
@@ -585,6 +655,7 @@ kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line)
     const n = 1024, c = document.createElement("canvas"); c.width = c.height = n; const x = c.getContext("2d");
     x.fillStyle = "#8f9190"; x.fillRect(0, 0, n, n);
     for (let i = 0; i < 9000; i++) { const v = 120 + rand() * 40 | 0; x.fillStyle = `rgba(${v},${v},${v},.35)`; x.fillRect(rand() * n, rand() * n, 2, 2); }
+    x.strokeStyle = "rgba(0,0,0,.25)"; x.lineWidth = 3; x.strokeRect(3, 3, n - 6, n - 6);
     x.strokeStyle = "#f2f2f2"; x.lineWidth = 14; x.beginPath(); x.arc(n / 2, n / 2, 330, 0, 7); x.stroke();
     x.fillStyle = "#f2f2f2"; x.fillRect(n / 2 - 120, n / 2 - 150, 40, 300); x.fillRect(n / 2 + 80, n / 2 - 150, 40, 300); x.fillRect(n / 2 - 80, n / 2 - 20, 160, 40);
     x.font = "700 70px 'Chakra Petch', Arial"; x.textAlign = "center"; x.fillText("BASE", n / 2, n - 70);
@@ -593,28 +664,64 @@ kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line)
   const pad = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.MeshStandardMaterial({ map: padTex, roughness: 0.85 }));
   pad.rotation.x = -Math.PI / 2; pad.position.y = 0.02; pad.receiveShadow = true; scene.add(pad);
 
-  // Hangar, ground station shelter and a village
-  const box = (w, h, d, color, x, z, ry = 0) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color, roughness: 0.85 })); m.position.set(x, h / 2, z); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
-  box(24, 9, 18, 0x6b7378, -28, -6); box(4, 2.6, 3, 0x7d858a, 18, 15);
-  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 8, 8), new THREE.MeshStandardMaterial({ color: 0x9aa0a4 })); mast.position.set(20, 4, 16); scene.add(mast);
-  // ground texture: 1 px = WORLD/2048 m, centre of texture = world origin
-  const tx = (px) => (px / 2048 - 0.5) * WORLD;
-  for (let i = 0; i < 60; i++) {
-    const w = 8 + rand() * 10, d = 8 + rand() * 12, h = 5 + rand() * 6;
-    box(w, h, d, [0xd9d2c5, 0xcfc6b5, 0xe3ddd2, 0xb9b2a5][i % 4], tx(1260 + rand() * 180), tx(640 + rand() * 160), rand() * Math.PI);
+  // Buildings: walls + roofs, a curved-roof hangar, a shelter and a mast at the base
+  const std = (color, r = 0.85) => new THREE.MeshStandardMaterial({ color, roughness: r });
+  const put = (geo, mat, x0, y0, z0, ry = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x0, y0, z0); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+  const box = (w, h, d, color, x0, z0, ry = 0) => put(new THREE.BoxGeometry(w, h, d), std(color), x0, h / 2, z0, ry);
+  // hangar with arched roof
+  box(26, 5, 18, 0x5f676c, -32, -6);
+  const arch = new THREE.CylinderGeometry(9, 9, 26, 24, 1, false, 0, Math.PI); arch.rotateZ(Math.PI / 2); arch.rotateX(Math.PI / 2);
+  put(arch, std(0x6e777c, 0.6), -32, 5, -6, Math.PI / 2);
+  box(4, 2.6, 3, 0x5c6468, 18, 15);
+  put(new THREE.CylinderGeometry(0.08, 0.1, 8, 8), std(0x9aa0a4, 0.4), 20, 4, 16);
+  // village houses: cream walls, terracotta or slate roofs, aligned on the streets
+  const wallMats = [0xe2d9c6, 0xd8ccb2, 0xece5d6, 0xcfc3a8].map(c => std(c));
+  const roofMats = [0x9b4f35, 0xa85a3a, 0x5d6266, 0x8e4a33].map(c => std(c, 0.7));
+  for (let row = 0; row < 5; row++) for (let i = 0; i < 12; i++) {
+    if (rand() < 0.25) continue;
+    const w = 8 + rand() * 5, d = 7 + rand() * 4, h = 4.5 + rand() * 3.5;
+    const x0 = VILLAGE[0] - 140 + i * 24 + (rand() - 0.5) * 6, z0 = VILLAGE[1] - 108 + row * 60 + (rand() < 0.5 ? -12 : 12);
+    const ry = (rand() - 0.5) * 0.15;
+    put(new THREE.BoxGeometry(w, h, d), wallMats[rand() * 4 | 0], x0, h / 2, z0, ry);
+    const roof = new THREE.CylinderGeometry(0.01, Math.max(w, d) * 0.72, 3 + rand() * 1.5, 4, 1); roof.rotateY(Math.PI / 4); roof.scale(w / Math.max(w, d), 1, d / Math.max(w, d));
+    put(roof, roofMats[rand() * 4 | 0], x0, h + 1.6, z0, ry);
   }
-  // Trees along hedges and in woods (instanced)
-  const treeGeo = new THREE.ConeGeometry(3, 11, 7); treeGeo.translate(0, 5.5, 0);
-  const trees = new THREE.InstancedMesh(treeGeo, new THREE.MeshStandardMaterial({ color: 0x3d4a2b, roughness: 1 }), 2600);
-  const dummy = new THREE.Object3D(); let ti = 0;
-  while (ti < 2600) {
-    let x = (rand() - 0.5) * WORLD * 0.96, z = (rand() - 0.5) * WORLD * 0.96;
-    if (rand() < 0.55) { const cx = [-900, 700, -400, 1300][ti % 4], cz = [600, 900, -1200, -300][ti % 4]; x = cx + (rand() - 0.5) * 380; z = cz + (rand() - 0.5) * 380; }
-    if (Math.hypot(x, z) < 120) continue;
-    const s = 0.7 + rand() * 0.8; dummy.position.set(x, 0, z); dummy.scale.set(s, s * (0.8 + rand() * 0.5), s); dummy.rotation.y = rand() * 6; dummy.updateMatrix();
-    trees.setMatrixAt(ti++, dummy.matrix);
+  // church spire
+  put(new THREE.BoxGeometry(7, 16, 7), wallMats[2], VILLAGE[0], 8, VILLAGE[1] + 20);
+  put(new THREE.ConeGeometry(5.2, 12, 4).rotateY(Math.PI / 4), roofMats[2], VILLAGE[0], 22, VILLAGE[1] + 20);
+
+  // Trees: broadleaf canopies and a few conifers, planted inside the woods and along hedges
+  const MAXT = 5200;
+  const canopyGeo = new THREE.IcosahedronGeometry(1, 1); canopyGeo.scale(1, 0.85, 1);
+  { const p = canopyGeo.attributes.position; for (let i = 0; i < p.count; i++) { const k = 0.85 + rand() * 0.3; p.setXYZ(i, p.getX(i) * k, p.getY(i) * k, p.getZ(i) * k); } canopyGeo.computeVertexNormals(); }
+  const trunkGeo = new THREE.CylinderGeometry(0.12, 0.18, 1, 6); trunkGeo.translate(0, 0.5, 0);
+  const canopies = new THREE.InstancedMesh(canopyGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, flatShading: true }), MAXT);
+  const trunks = new THREE.InstancedMesh(trunkGeo, std(0x4a3b2c, 1), MAXT);
+  const firGeo = new THREE.ConeGeometry(1, 1, 7); firGeo.translate(0, 0.5, 0);
+  const firs = new THREE.InstancedMesh(firGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, flatShading: true }), 900);
+  const dummy = new THREE.Object3D(), col = new THREE.Color();
+  const fdata = fx.getImageData(0, 0, 512, 512).data;
+  const inForest = (wx, wz) => { const px = toPx(wx) / 8 | 0, pz = toPx(wz) / 8 | 0; return px >= 0 && pz >= 0 && px < 512 && pz < 512 && fdata[(pz * 512 + px) * 4] > 128; };
+  let ti = 0, fi = 0, guard = 0;
+  while ((ti < MAXT || fi < 900) && guard++ < 400000) {
+    const wx = (rand() - 0.5) * WORLD * 0.98, wz = (rand() - 0.5) * WORLD * 0.98;
+    if (Math.hypot(wx, wz) < 130 || Math.hypot(wx - VILLAGE[0], wz - VILLAGE[1]) < 190) continue;
+    const forestHere = inForest(wx, wz);
+    if (!forestHere && rand() > 0.035) continue;          // a few isolated trees in the fields
+    const hgt = forestHere ? 12 + rand() * 10 : 8 + rand() * 7;
+    if (forestHere && fi < 900 && rand() < 0.18) {
+      dummy.position.set(wx, 0, wz); dummy.rotation.set(0, rand() * 6, 0); dummy.scale.set(2.2 + rand(), hgt * 1.2, 2.2 + rand()); dummy.updateMatrix();
+      firs.setMatrixAt(fi, dummy.matrix); firs.setColorAt(fi++, col.setHSL(0.28 + rand() * 0.04, 0.32, 0.17 + rand() * 0.05));
+    } else if (ti < MAXT) {
+      const r = hgt * (0.32 + rand() * 0.1);
+      dummy.position.set(wx, hgt - r * 0.9, wz); dummy.rotation.set(0, rand() * 6, 0); dummy.scale.set(r, r, r); dummy.updateMatrix();
+      canopies.setMatrixAt(ti, dummy.matrix); canopies.setColorAt(ti, col.setHSL(0.22 + rand() * 0.07, 0.35 + rand() * 0.15, 0.2 + rand() * 0.1));
+      dummy.position.set(wx, 0, wz); dummy.scale.set(1, hgt - r * 1.4, 1); dummy.updateMatrix(); trunks.setMatrixAt(ti++, dummy.matrix);
+    }
   }
-  trees.castShadow = true; scene.add(trees);
+  canopies.count = trunks.count = ti; firs.count = fi;
+  [canopies, trunks, firs].forEach(m => { m.castShadow = true; m.receiveShadow = true; scene.add(m); });
+
 
   // ───────────────────────── Drone ─────────────────────────
 
@@ -947,7 +1054,8 @@ kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line)
     [500, 1000, 1500].forEach(r => { c.beginPath(); c.arc(cx, cy, r * k, 0, 7); c.stroke(); });
     c.fillStyle = "rgba(255,255,255,.55)"; c.font = "18px IBM Plex Mono, monospace"; c.fillText("N", cx - 6, 22); c.fillText("1 km", cx + 1000 * k * 0.7 + 4, cy - 1000 * k * 0.7);
     // village and woods for orientation
-    c.fillStyle = "rgba(255,255,255,.12)"; const vx = ((1260 + 90) / 2048 - 0.5) * WORLD, vz = ((640 + 80) / 2048 - 0.5) * WORLD; c.fillRect(cx + vx * k - 22, cy + vz * k - 20, 44, 40);
+    c.fillStyle = "rgba(255,255,255,.12)"; c.fillRect(cx + VILLAGE[0] * k - 16, cy + VILLAGE[1] * k - 14, 32, 28);
+    c.fillStyle = "rgba(255,255,255,.07)"; WOODS.forEach(([wx, wz, r]) => { c.beginPath(); c.arc(cx + wx * k, cy + wz * k, r * k * 0.8, 0, 7); c.fill(); });
     c.strokeStyle = "rgba(255,255,255,.7)"; c.lineWidth = 2; c.beginPath();
     S.trail.forEach(([x, z], i) => { const px = cx + x * k, py = cy + z * k; i ? c.lineTo(px, py) : c.moveTo(px, py); }); c.stroke();
     c.fillStyle = "#fff"; c.fillRect(cx - 6, cy - 6, 12, 12);
